@@ -146,12 +146,34 @@ services:
     networks:
       - spark-net
 
+  airflow-init:
+    image: apache/airflow:2.10.5
+    container_name: airflow-init
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__FERNET_KEY=s663FvIxp7DpaFGoBbOEvIovMgT4GyhXxJ5k_BQ82ks=
+      - AIRFLOW__WEBSERVER__SECRET_KEY=supersecretkey1234567890abcdef
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      - _PIP_ADDITIONAL_REQUIREMENTS=pyspark boto3 minio psycopg2-binary apache-airflow-providers-apache-spark
+    entrypoint: /bin/bash
+    command: -c "airflow db init && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./spark:/opt/airflow/spark
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - spark-net
+
   airflow-webserver:
     image: apache/airflow:2.10.5
     container_name: airflow-webserver
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__CORE__FERNET_KEY=fernet_key
+      - AIRFLOW__CORE__FERNET_KEY=s663FvIxp7DpaFGoBbOEvIovMgT4GyhXxJ5k_BQ82ks=
       - AIRFLOW__WEBSERVER__SECRET_KEY=supersecretkey1234567890abcdef
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
@@ -167,6 +189,7 @@ services:
       - spark-master
       - minio
       - postgres
+      - airflow-init
     command: webserver
     networks:
       - spark-net
@@ -176,7 +199,7 @@ services:
     container_name: airflow-scheduler
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__CORE__FERNET_KEY=fernet_key
+      - AIRFLOW__CORE__FERNET_KEY=s663FvIxp7DpaFGoBbOEvIovMgT4GyhXxJ5k_BQ82ks=
       - AIRFLOW__WEBSERVER__SECRET_KEY=supersecretkey1234567890abcdef
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
@@ -189,6 +212,7 @@ services:
     depends_on:
       - airflow-webserver
       - postgres
+      - airflow-init
     command: scheduler
     networks:
       - spark-net

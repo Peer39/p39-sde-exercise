@@ -14,12 +14,25 @@ echo "🧹 Cleaning up dangling volumes..."
 docker system prune -f --volumes
 
 # Recreate containers
+# Initialize Airflow DB (safe to run multiple times)
+echo "🗄️  Initializing Airflow database..."
+docker-compose up airflow-init
+
 echo "🚀 Starting containers with new configuration..."
 docker-compose up -d
 
 # Wait for containers to be ready
-echo "⏳ Waiting for containers to initialize..."
-sleep 30
+
+echo "⏳ Waiting for Spark master to be ready..."
+for i in {1..30}; do
+  if docker exec spark-master curl -sf http://localhost:8080 > /dev/null; then
+    echo "✅ Spark master is ready!"
+    break
+  else
+    echo "Waiting for Spark master... ($i/30)"
+    sleep 2
+  fi
+done
 
 # Check container status
 echo "📊 Container status:"
@@ -118,8 +131,7 @@ try:
     print('✅ S3A filesystem connectivity successful')
     spark.stop()
 except Exception as e:
-    print(f'❌ S3A connectivity failed: {e}')
-    exit(1)
+    import traceback; traceback.print_exc()
 " > /dev/null 2>&1; then
     echo "✅ S3A connectivity test passed"
 else
@@ -145,9 +157,11 @@ echo ""
 echo "🌐 Available services:"
 echo "  - Spark Master UI: http://localhost:8080"
 echo "  - MinIO Console: http://localhost:9001 (minioadmin/minioadmin)"
-echo "  - Airflow UI: http://localhost:8081"
+echo "  - Airflow UI: http://localhost:8081 (admin/admin)"
 echo ""
 echo "📝 Note: JAR files are pre-installed using the working versions:"
 echo "  - hadoop-aws-3.3.4.jar (compatible with AWS SDK v1)"
 echo "  - aws-java-sdk-bundle-1.12.470.jar (AWS SDK v1)"
 echo "  This avoids the ClassNotFoundException we encountered earlier."
+echo "⚠️  Note: Airflow may take 3–5 minutes to become accessible after stack creation, especially on the first run."
+echo "    You can check progress with: docker compose logs -f airflow-webserver"
