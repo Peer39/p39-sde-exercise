@@ -10,7 +10,7 @@ echo "🧹 Aggressively cleaning all Docker Compose resources for this project..
 # Stop and remove all containers, networks, and volumes defined in docker-compose.yml
 if [ -f "$COMPOSE_FILE" ]; then
     echo "🛑 Stopping and removing containers, networks, and volumes..."
-    docker-compose -f "$COMPOSE_FILE" down --volumes --remove-orphans --rmi all
+    docker compose -f "$COMPOSE_FILE" down --volumes --remove-orphans --rmi all
 else
     echo "❌ $COMPOSE_FILE not found in current directory. Aborting."
     exit 1
@@ -43,4 +43,4 @@ docker images -f "dangling=true" -q | xargs -r docker rmi 2>/dev/null || true
 # Print final status
 echo ""
 echo "✅ Aggressive Docker Compose environment cleanup complete."
-echo "You can now run: ./create-stack.sh or docker-compose up -d"
+echo "You can now run: ./create-stack.sh or docker compose up -d"

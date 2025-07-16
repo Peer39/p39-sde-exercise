@@ -1,25 +1,21 @@
 #!/bin/bash
-echo "🔄 Recreating Spark containers with S3A configuration..."
+echo "🔄 Creating p39-sde-exercise docker-based resources - Airflow, MinIO and Spark containers"
 
-# Stop and remove existing containers
-echo "📦 Stopping existing containers..."
-docker-compose down
+# Safe project-scoped cleanup
+echo "🧹 First - cleaning up only this project's Docker Compose resources..."
+docker compose down --volumes --remove-orphans --rmi all
 
-# Remove existing Spark containers specifically
-echo "🗑️  Removing existing Spark containers..."
-docker rm -f spark-master spark-worker 2>/dev/null || true
-
-# Remove any dangling volumes (optional)
-echo "🧹 Cleaning up dangling volumes..."
-docker system prune -f --volumes
+# Optionally, remove named volumes/networks if you know they are only used by this project:
+docker volume rm minio_data postgres_data 2>/dev/null || true
+docker network rm spark-net 2>/dev/null || true
 
 # Recreate containers
 # Initialize Airflow DB (safe to run multiple times)
 echo "🗄️  Initializing Airflow database..."
-docker-compose up airflow-init
+docker compose up airflow-init
 
 echo "🚀 Starting containers with new configuration..."
-docker-compose up -d
+docker compose up -d
 
 # Wait for containers to be ready
 
@@ -36,7 +32,7 @@ done
 
 # Check container status
 echo "📊 Container status:"
-docker-compose ps
+docker compose ps
 
 # Validate MinIO
 echo "🔍 Checking MinIO health..."
